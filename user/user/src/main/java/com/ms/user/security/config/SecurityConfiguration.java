@@ -18,7 +18,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfiguration {
 
-    public static final String[] ENDPOINTS_WITH_AUTHENTICATION_NOT_REQUIRED = { "/users/login", "/users", "/error" };
+    public static final String[] ENDPOINTS_WITH_AUTHENTICATION_NOT_REQUIRED = { 
+    "/users/login", 
+    "/users", 
+    "/error", 
+    "/auth/request-code" 
+};
     public static final String[] ENDPOINTS_ADMIN = { "/users/test/administrator" };
     public static final String[] ENDPOINTS_CUSTOMER = { "/users/test/customer" };
 
