@@ -22,7 +22,8 @@ public class SecurityConfiguration {
     "/users/login", 
     "/users", 
     "/error", 
-    "/auth/request-code" 
+    "/auth/request-code",
+    "/auth/verify-code"
 };
     public static final String[] ENDPOINTS_ADMIN = { "/users/test/administrator" };
     public static final String[] ENDPOINTS_CUSTOMER = { "/users/test/customer" };

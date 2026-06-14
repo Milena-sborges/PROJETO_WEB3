@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Verificar Código</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h2>Digite o código recebido no e-mail</h2>
+    <form id="verifyForm">
+        <input type="text" id="codigo" placeholder="Código de 6 dígitos" required>
+        <button type="submit">Validar</button>
+    </form>
+    <p id="mensagemErro" style="color: red;"></p>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const email = urlParams.get('email');
+
+        document.getElementById('verifyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const codigo = document.getElementById('codigo').value;
+
+            try {
+               const response = await axios.post('/verify-code', { email: email, codigo: codigo });
+
+
+                      sessionStorage.setItem('token', response.data.token);
+              
+              
+               
+                
+               
+               window.location.href = '/dashboard';
+            
+            } catch (error) {
+                // Caso contrário, exibe erro 
+                document.getElementById('mensagemErro').innerText = "Código inválido ou expirado.";
+            }
+        });
+    </script>
+</body>
+</html>

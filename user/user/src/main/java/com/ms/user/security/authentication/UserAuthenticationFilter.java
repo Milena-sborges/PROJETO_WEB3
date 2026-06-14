@@ -26,7 +26,26 @@ public class UserAuthenticationFilter extends OncePerRequestFilter {
     
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        
+        // --- MARRETA DO CORS: LIBERA O GOOGLE CHROME ---
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT");
+        response.setHeader("Access-Control-Allow-Headers", "*");
+
+        // Se o Chrome fizer a requisição de pré-vôo (OPTIONS), o Java devolve 200 OK na hora!
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            response.setStatus(HttpServletResponse.SC_OK);
+            return;
+        }
+        // -------------------------------------------------
+
         if (isPublicEndpoint(request)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String uri = request.getRequestURI();
+        if (uri.contains("/auth/")) {
             filterChain.doFilter(request, response);
             return;
         }
