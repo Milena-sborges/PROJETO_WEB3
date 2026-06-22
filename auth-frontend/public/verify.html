@@ -22,19 +22,16 @@
             const codigo = document.getElementById('codigo').value;
 
             try {
-               const response = await axios.post('/verify-code', { email: email, codigo: codigo });
+                const response = await axios.post('/verify-code', {
+                    email: email,
+                    codigo: codigo
+                });
 
-
-                      sessionStorage.setItem('token', response.data.token);
-              
-              
-               
-                
-               
-               window.location.href = '/dashboard';
-            
+                console.log("RESPOSTA:", response.data);
+                sessionStorage.setItem('token', response.data.token);
+                console.log("TOKEN SALVO:", sessionStorage.getItem('token'));
+                window.location.href = '/register';
             } catch (error) {
-                // Caso contrário, exibe erro 
                 document.getElementById('mensagemErro').innerText = "Código inválido ou expirado.";
             }
         });

@@ -1,8 +1,8 @@
 package com.ms.email.models;
+
 import jakarta.persistence.*;
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "TB_EMAILS")
@@ -10,10 +10,10 @@ public class EmailModel implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private UUID emailId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long emailId;
     
-    private UUID userId;
+    private Long userId;
     private String emailFrom;
     private String emailTo;
     private String subject;
@@ -24,11 +24,12 @@ public class EmailModel implements Serializable {
     private LocalDateTime sendDateEmail;
     private String status;
 
-    public UUID getEmailId() { return emailId; }
-    public void setEmailId(UUID emailId) { this.emailId = emailId; }
+    // Getters e Setters
+    public Long getEmailId() { return emailId; }
+    public void setEmailId(Long emailId) { this.emailId = emailId; }
 
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
 
     public String getEmailFrom() { return emailFrom; }
     public void setEmailFrom(String emailFrom) { this.emailFrom = emailFrom; }

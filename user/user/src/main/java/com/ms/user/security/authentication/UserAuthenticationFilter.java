@@ -27,17 +27,15 @@ public class UserAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         
-        // --- MARRETA DO CORS: LIBERA O GOOGLE CHROME ---
+        // CORS headers
         response.setHeader("Access-Control-Allow-Origin", "*");
         response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT");
         response.setHeader("Access-Control-Allow-Headers", "*");
 
-        // Se o Chrome fizer a requisição de pré-vôo (OPTIONS), o Java devolve 200 OK na hora!
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             response.setStatus(HttpServletResponse.SC_OK);
             return;
         }
-        // -------------------------------------------------
 
         if (isPublicEndpoint(request)) {
             filterChain.doFilter(request, response);
@@ -52,13 +50,22 @@ public class UserAuthenticationFilter extends OncePerRequestFilter {
         
         String token = recoverToken(request);
         if (token != null) {
-            String email = jwtTokenService.getSubjectFromToken(token);
-            UserModel user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-            UserDetailsImpl userDetails = new UserDetailsImpl(user);
-            Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails.getUsername(), null, userDetails.getAuthorities());
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-        } else {
-            throw new RuntimeException("Token JWT não fornecido");
+            try {
+                String email = jwtTokenService.getSubjectFromToken(token);
+                UserModel user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                
+                UserDetailsImpl userDetails = new UserDetailsImpl(user);
+                
+                // Agora o getAuthorities() já trata o lazy loading internamente
+                Authentication authentication = new UsernamePasswordAuthenticationToken(
+                    userDetails.getUsername(), null, userDetails.getAuthorities()
+                );
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            } catch (Exception e) {
+                System.err.println("Erro na autenticação: " + e.getMessage());
+                e.printStackTrace();
+            }
         }
         filterChain.doFilter(request, response);
     }

@@ -3,8 +3,7 @@ package com.ms.user.repositories;
 import com.ms.user.models.UserModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
-import java.util.UUID;
 
-public interface UserRepository extends JpaRepository<UserModel, UUID> {
+public interface UserRepository extends JpaRepository<UserModel, Long> {
     Optional<UserModel> findByEmail(String email);
 }

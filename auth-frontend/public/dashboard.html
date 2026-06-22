@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+</head>
+<body>
+    <h2>Painel do Usuário</h2>
+    
+    <button onclick="testarProtegido()">Testar endpoint protegido</button>
+    <button onclick="meuPerfil()">Meu perfil</button>
+    <button onclick="sair()">Sair</button>
+
+    <div id="resultado" style="margin-top: 20px; padding: 15px; border: 2px solid #333;">
+        Aguardando ação...
+    </div>
+
+    <script>
+        const token = sessionStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/'; 
+        }
+
+        async function testarProtegido() {
+            try {
+                const response = await fetch('/api/protected', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const text = await response.text();
+                document.getElementById('resultado').innerHTML = "<b>Resposta do Servidor:</b> " + text;
+            } catch (error) {
+                document.getElementById('resultado').innerHTML = "<b>Erro:</b> " + error.message;
+            }
+        }
+
+        async function meuPerfil() {
+            try {
+                const response = await fetch('/users/me', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await response.json();
+                
+                // Converte o nome da role para um formato mais amigável
+                let cargo = "Sem cargo";
+                if (data.roles && data.roles.length > 0) {
+                    const roleName = data.roles[0].name;
+                    if (roleName === "ROLE_CUSTOMER") {
+                        cargo = "Cliente";
+                    } else if (roleName === "ROLE_ADMINISTRATOR") {
+                        cargo = "Administrador";
+                    }
+                }
+                
+                document.getElementById('resultado').innerHTML = 
+                    "<b>Nome:</b> " + data.name + "<br><b>Cargo:</b> " + cargo;
+            } catch (error) {
+                document.getElementById('resultado').innerHTML = "<b>Erro ao carregar perfil:</b> " + error.message;
+            }
+        }
+
+        function sair() {
+            sessionStorage.removeItem('token');
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

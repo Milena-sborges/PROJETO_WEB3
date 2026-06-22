@@ -13,7 +13,11 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import com.ms.user.enums.RoleName;
+import java.util.ArrayList;
 import java.util.List;
+import com.ms.user.dtos.UpdateProfileDto;
 
 @Service
 public class UserService {
@@ -24,12 +28,15 @@ public class UserService {
     @Autowired private JwtTokenService jwtTokenService;
 
     public UserModel save(CreateUserDto dto) {
+        RoleName cargoPadrao = dto.role() != null ? dto.role() : RoleName.ROLE_CUSTOMER;
+
         var userModel = UserModel.builder()
             .name(dto.name())
             .email(dto.email())
             .password(passwordEncoder.encode(dto.password()))
-            .roles(List.of(Role.builder().name(dto.role()).build()))
+            .roles(List.of(Role.builder().name(cargoPadrao).build()))
             .build();
+            
         return userRepository.save(userModel);
     }
 
@@ -38,5 +45,30 @@ public class UserService {
         var authentication = authenticationManager.authenticate(authToken);
         var userDetails = (UserDetailsImpl) authentication.getPrincipal();
         return new RecoveryJwtTokenDto(jwtTokenService.generateToken(userDetails));
+    }
+
+    @Transactional
+    public UserModel updateProfile(String email, UpdateProfileDto dto) {
+        UserModel user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
+        
+        if (dto.name() != null && !dto.name().isBlank()) {
+            user.setName(dto.name());
+        }
+        
+        if (dto.role() != null) {
+            Role role = new Role();
+            if (dto.role().equals("ROLE_ADMINISTRATOR")) {
+                role.setName(RoleName.ROLE_ADMINISTRATOR);
+            } else {
+                role.setName(RoleName.ROLE_CUSTOMER); 
+            }
+            
+            List<Role> novasRoles = new ArrayList<>();
+            novasRoles.add(role);
+            user.setRoles(novasRoles);
+        }
+        
+        return userRepository.save(user);
     }
 }

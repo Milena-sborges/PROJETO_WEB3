@@ -1,0 +1,37 @@
+# Java
+*.class
+*.jar
+*.war
+*.ear
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+bin/
+
+# Node
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
+
+# Configurações sensíveis (NÃO SUBIR!)
+application.properties
+*.log
+
+# Screenshots (se quiser subir, remova esta linha)
+# screenshots/

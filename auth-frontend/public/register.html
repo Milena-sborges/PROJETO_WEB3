@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Completar Cadastro</title>
+</head>
+<body>
+    <h2>Complete seu Perfil</h2>
+    <form id="registerForm">
+        <label>Nome Completo:</label>
+        <input type="text" id="name" required>
+        <br><br>
+        
+        <label>Cargo:</label>
+        <select id="role">
+            <option value="ROLE_CUSTOMER">Cliente</option>
+            <option value="ROLE_ADMINISTRATOR">Administrador</option>
+        </select>
+        <br><br>
+        
+        <button type="submit">Salvar Perfil</button>
+    </form>
+
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Pega o token que foi salvo quando você digitou o código de 6 dígitos
+            const token = sessionStorage.getItem('token'); 
+            
+            const data = {
+                name: document.getElementById('name').value,
+                role: document.getElementById('role').value
+            };
+
+            // Bate na rota do Express repassando o Token
+            const response = await fetch('/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token 
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                // Se der certo, manda para o dashboard
+                window.location.href = '/dashboard';
+            } else {
+                alert('Erro ao salvar o perfil.');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -13,91 +13,106 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/auth")
-@CrossOrigin(origins = "*") // LIBERA O GOOGLE CHROME
+@CrossOrigin(origins = "*")
 public class AuthController {
 
     @Autowired private UserRepository userRepository;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private CodigoCacheService cacheService;
     @Autowired private UserProducer userProducer;
-    @Autowired private JwtTokenService jwtTokenService; // ADICIONADO PARA O TOKEN
-
-    public record RequestCodeDto(String email) {}
-    public record VerifyCodeDto(String email, String codigo) {} // ADICIONADO PARA A VALIDAÇÃO
+    @Autowired private JwtTokenService jwtTokenService;
 
     @PostMapping("/request-code")
-    public ResponseEntity<String> requestCode(@RequestBody RequestCodeDto dto) {
-        String email = dto.email();
-
-        // 1. Gera código aleatório de 6 dígitos
-        String codigo = String.format("%06d", new Random().nextInt(1000000));
-
-        // 2. Salva o código na memória (Cache) por 5 minutos
-        cacheService.salvarCodigo(email, codigo);
-
-        // 3. Verifica se o e-mail já existe.
-        Optional<UserModel> userOpt = userRepository.findByEmail(email);
-        UserModel user;
-        
-        if (userOpt.isEmpty()) {
-            user = new UserModel();
-            user.setEmail(email);
-            user.setName("Usuário Temporário"); 
-            user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString())); 
+    public ResponseEntity<?> requestCode(@RequestBody Map<String, String> body) {
+        try {
+            String email = body.get("email");
+            System.out.println("Solicitando código para: " + email);
             
-            Role role = new Role();
-            role.setName(RoleName.ROLE_CUSTOMER); 
-            user.setRoles(List.of(role));
-            
-            user = userRepository.save(user); 
-        } else {
-            user = userOpt.get(); 
-        }
+            String codigo = String.format("%06d", new Random().nextInt(1000000));
+            cacheService.salvarCodigo(email, codigo);
 
-        // 4. Monta o envelope do e-mail
-        EmailDto emailDto = new EmailDto(
+            Optional<UserModel> userOpt = userRepository.findByEmail(email);
+            UserModel user;
+            
+            if (userOpt.isEmpty()) {
+                System.out.println("Criando novo usuário temporário");
+                user = new UserModel();
+                user.setEmail(email);
+                user.setName("Usuário Temporário");
+                user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+                
+                // Criar role com lista mutável
+                Role role = new Role();
+                role.setName(RoleName.ROLE_CUSTOMER);
+                
+                List<Role> listaRoles = new ArrayList<>();
+                listaRoles.add(role);
+                user.setRoles(listaRoles);
+                
+                user = userRepository.save(user);
+                System.out.println("Usuário criado com ID: " + user.getUserId());
+            } else {
+                user = userOpt.get();
+                System.out.println("Usuário já existe: " + user.getUserId());
+            }
+
+            // Criar EmailDto e publicar
+            EmailDto emailDto = new EmailDto(
                 user.getUserId(),
                 email,
                 "Seu código de acesso",
                 "Seu código de acesso é: " + codigo
-        );
+            );
+            
+            userProducer.publishMessageEmail(emailDto);
+            System.out.println("Mensagem publicada na fila");
 
-        // 5. Publica a mensagem na fila do RabbitMQ
-        userProducer.publishMessageEmail(emailDto);
-
-        return ResponseEntity.ok("Código solicitado com sucesso. Verifique seu e-mail.");
+            return ResponseEntity.ok("Código solicitado com sucesso. Verifique seu e-mail.");
+            
+        } catch (Exception e) {
+            System.err.println("ERRO NO REQUEST-CODE: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Erro: " + e.getMessage());
+        }
     }
 
-    // === O MÉTODO QUE ESTAVA FALTANDO ===
     @PostMapping("/verify-code")
-    public ResponseEntity<?> verifyCode(@RequestBody VerifyCodeDto dto) {
-        
-        // 1. Acha o usuário no banco
-        Optional<UserModel> userOpt = userRepository.findByEmail(dto.email());
-        
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(401).body(Map.of("erro", "Usuário não encontrado."));
+    public ResponseEntity<?> verifyCode(@RequestBody Map<String, String> body) {
+        try {
+            String email = body.get("email");
+            String codigo = body.get("codigo");
+            
+            if (codigo == null) {
+                codigo = body.get("code");
+            }
+
+            System.out.println("Verificando código para: " + email);
+            System.out.println("Código recebido: " + codigo);
+
+            String codigoSalvo = cacheService.obterCodigo(email);
+            System.out.println("Código salvo: " + codigoSalvo);
+
+            if (codigoSalvo == null || !codigoSalvo.equals(codigo)) {
+                return ResponseEntity.status(401)
+                    .body(Map.of("erro", "Código inválido"));
+            }
+
+            UserModel user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+            UserDetailsImpl userDetails = new UserDetailsImpl(user);
+            String token = jwtTokenService.generateToken(userDetails);
+
+            return ResponseEntity.ok(Map.of("token", token));
+            
+        } catch (Exception e) {
+            System.err.println("ERRO NO VERIFY-CODE: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("erro", e.getMessage()));
         }
-
-        // 2. Prepara o formato do Spring Security
-        UserModel user = userOpt.get();
-        UserDetailsImpl userDetails = new UserDetailsImpl(user);
-        
-        // 3. Gera o Token JWT
-        // ATENÇÃO: Se o VS Code sublinhar 'generateToken' de vermelho, 
-        // experimente trocar o nome para 'createToken' ou algo parecido do seu projeto!
-        String token = jwtTokenService.generateToken(userDetails);
-
-        // 4. Devolve o token para a sua tela!
-        return ResponseEntity.ok(Map.of("token", token));
     }
 }

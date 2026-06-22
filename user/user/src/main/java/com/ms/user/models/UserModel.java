@@ -2,8 +2,8 @@ package com.ms.user.models;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Table(name = "TB_USERS")
@@ -14,9 +14,9 @@ import java.util.UUID;
 @AllArgsConstructor
 public class UserModel {
 
-    @Id 
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private UUID userId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long userId;
     
     private String name;
     
@@ -25,9 +25,17 @@ public class UserModel {
     
     private String password;
 
-    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.PERSIST)
+    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)  // ← MUDOU DE LAZY PARA EAGER
     @JoinTable(name = "users_roles",
         joinColumns = @JoinColumn(name = "user_id"),
         inverseJoinColumns = @JoinColumn(name = "role_id"))
     private List<Role> roles;
+
+    // Método helper para garantir que a lista nunca seja null
+    public List<Role> getRoles() {
+        if (roles == null) {
+            roles = new ArrayList<>();
+        }
+        return roles;
+    }
 }
